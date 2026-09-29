@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 - Manutenzione predittiva</title>
+<style>
+  :root{
+    --bg:#eef1f5; --paper:#fff; --ink:#1f2733; --muted:#5b6673; --line:#d5dbe3;
+    --accent:#1f4e79; --accent-soft:#eaf1f8; --ok:#1a7f4b; --ok-bg:#e7f5ec;
+    --err:#c0261e; --err-bg:#fbeae9; --fieldbg:#fbfcfe;
+    --xls:#217346; --xls-head:#e8efe9; --xls-line:#c6c6c6; --xls-num:#f2f2f2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;padding:22px 14px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;}
+  .sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    box-shadow:0 6px 24px rgba(20,40,70,.08);margin-bottom:20px;}
+  .top{background:var(--accent);color:#fff;padding:18px 26px;}
+  .top .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;}
+  .top h1{margin:4px 0 0;font-size:20px;font-weight:650;}
+  .body{padding:20px 26px 26px;}
+  h2.sec{font-size:16px;color:var(--accent);border-bottom:2px solid var(--accent-soft);padding-bottom:6px;margin:6px 0 14px;}
+  .legend{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 15px;border-radius:6px;font-size:13.5px;margin-bottom:18px;}
+  .legend b{color:var(--accent);}
+  .sys{border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-bottom:14px;background:var(--fieldbg);}
+  .sys h3{margin:0 0 4px;font-size:15px;}
+  .sys .desc{font-size:13.5px;color:var(--muted);margin-bottom:12px;}
+  .sys .signal{font-size:13.5px;background:#fff;border:1px dashed var(--line);border-left:3px solid var(--accent);padding:8px 11px;border-radius:5px;margin-bottom:12px;}
+  .sys .signal b{color:var(--accent);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+  label.f{display:block;font-size:13px;font-weight:600;margin-bottom:5px;}
+  select{width:100%;padding:9px 10px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit;}
+  select:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+  .cell{border-radius:6px;padding:2px;}
+  .cell.correct{box-shadow:0 0 0 2px var(--ok);} .cell.wrong{box-shadow:0 0 0 2px var(--err);}
+  .fb{font-size:12.5px;margin-top:5px;display:none;}
+  .cell.correct .fb,.cell.wrong .fb{display:block;}
+  .cell.correct .fb{color:var(--ok);} .cell.wrong .fb{color:var(--err);}
+  .actions{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:14.5px;font-weight:600;border:none;border-radius:8px;padding:11px 20px;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#173d5e;}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .btn-xls{background:var(--xls);color:#fff;} .btn-xls:hover{background:#1a5c38;}
+  .note{font-size:13px;color:var(--muted);margin-top:10px;}
+  .locked{opacity:.5;pointer-events:none;}
+  .hidden{display:none;}
+  .xlsbar{background:var(--xls);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px 6px 0 0;}
+  .xls-scroll{overflow-x:auto;border:1px solid var(--xls-line);border-top:none;border-radius:0 0 6px 6px;}
+  table.xls{border-collapse:collapse;width:100%;font-size:12.5px;min-width:820px;background:#fff;}
+  table.xls th,table.xls td{border:1px solid var(--xls-line);padding:6px 9px;text-align:left;vertical-align:top;}
+  table.xls thead th{background:var(--xls-head);font-weight:700;}
+  table.xls .rownum{background:var(--xls-num);text-align:center;color:var(--muted);font-weight:600;width:26px;}
+  table.xls .collet{background:var(--xls-num);text-align:center;color:var(--muted);font-weight:600;}
+  td.prio-alta{color:var(--err);font-weight:800;background:#fdeceb;}
+  td.date-red{color:var(--err);font-weight:800;background:#fdeceb;}
+  #doc{border:1px solid var(--line);border-radius:8px;padding:24px;font-size:13.5px;}
+  #doc h3.mh{color:var(--accent);font-size:14.5px;border-bottom:1px solid var(--line);padding-bottom:4px;margin:18px 0 8px;}
+  #doc .subt{color:var(--muted);font-size:12.5px;margin:-6px 0 12px;}
+  #doc .kv{display:grid;grid-template-columns:250px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted var(--line);}
+  #doc .kv .k{color:var(--muted);} #doc .kv .v{font-weight:600;}
+  #doc .redflag{color:var(--err);font-weight:800;}
+  #doc .ph{color:var(--accent);font-style:italic;font-weight:500;}
+  .stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--err);border:2px solid var(--err);background:var(--err-bg);}
+  .firme{margin-top:18px;font-size:13px;} .firme .row{margin:10px 0;}
+  footer{font-size:12px;color:var(--muted);text-align:center;padding:10px;}
+  @media print{ body{background:#fff;padding:0;} .no-print{display:none !important;} .sheet{border:none;box-shadow:none;} #doc{border:none;padding:0;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="sheet">
+    <div class="top">
+      <div class="kicker">Corso IA e sicurezza sul lavoro · Modulo 2 · Serious game</div>
+      <h1>Diagnosi predittiva e piano di intervento</h1>
+    </div>
+    <div class="body">
+      <div class="legend">
+        <b>La manutenzione predittiva in tre passaggi.</b> I sensori rilevano un <b>segnale</b> anomalo;
+        dal segnale si risale al <b>guasto probabile</b>; dal guasto si definiscono <b>priorità</b> e
+        <b>intervento</b>, prima che il cedimento diventi un pericolo per chi lavora.<br>
+        <span class="note">Convenzione dell'esercitazione per la tempistica di intervento: <b>7 giorni</b> per la priorità
+        alta, <b>30 giorni</b> per la media, <b>alla prossima manutenzione programmata (90 giorni)</b> per la bassa.</span>
+      </div>
+
+      <!-- PASSO 1 -->
+      <h2 class="sec">Passo 1 — Interpreta i segnali e compila il registro interventi</h2>
+      <p class="note" style="margin-top:-6px">Per ogni macchina leggi il <b>segnale rilevato dai sensori</b>, indica il
+        <b>guasto probabile</b> e la <b>priorità</b> di intervento. Poi premi <b>Salva nel registro</b>.</p>
+
+      <form id="reg">
+        <div class="sys">
+          <h3>Macchina 1 — Carroponte 12,5 t (reparto produzione)</h3>
+          <div class="desc">Apparecchio di sollevamento monitorato con sensori su fune e freno.</div>
+          <div class="signal"><b>Segnale rilevato dai sensori:</b> perdita di sezione fune (MRT) 6,5% — soglia allerta 5% — e tempo di slittamento freno 320 ms — soglia max 200 ms — in progressione. RUL stimata ≈ 50 ore operative.</div>
+          <div class="grid2">
+            <div><label class="f">Guasto probabile</label>
+              <div class="cell" data-correct="Degrado della fune di sollevamento e usura del freno">
+                <select><option value="">— seleziona —</option><option>Degrado della fune di sollevamento e usura del freno</option><option>Squilibrio elettrico del motore</option><option>Ostruzione del quadro comandi</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Priorità di intervento</label>
+              <div class="cell" data-correct="Alta">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="sys">
+          <h3>Macchina 2 — Compressore d'aria</h3>
+          <div class="desc">Compressore a vite con sensori di vibrazione e temperatura.</div>
+          <div class="signal"><b>Segnale rilevato:</b> vibrazione crescente sui cuscinetti e lieve aumento della temperatura di esercizio.</div>
+          <div class="grid2">
+            <div><label class="f">Guasto probabile</label>
+              <div class="cell" data-correct="Usura dei cuscinetti">
+                <select><option value="">— seleziona —</option><option>Usura dei cuscinetti</option><option>Perdita di pressione dal serbatoio</option><option>Guasto del pressostato</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Priorità di intervento</label>
+              <div class="cell" data-correct="Media">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="sys">
+          <h3>Macchina 3 — Nastro trasportatore</h3>
+          <div class="desc">Nastro di linea con misura dell'assorbimento elettrico del motore.</div>
+          <div class="signal"><b>Segnale rilevato:</b> lieve aumento graduale dell'assorbimento elettrico del motore, senza altri sintomi.</div>
+          <div class="grid2">
+            <div><label class="f">Guasto probabile</label>
+              <div class="cell" data-correct="Aumento dell'attrito o disallineamento del nastro">
+                <select><option value="">— seleziona —</option><option>Aumento dell'attrito o disallineamento del nastro</option><option>Rottura improvvisa del rullo</option><option>Corto circuito del motore</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Priorità di intervento</label>
+              <div class="cell" data-correct="Bassa">
+                <select><option value="">— seleziona —</option><option>Alta</option><option>Media</option><option>Bassa</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-xls" id="saveReg">Salva nel registro</button>
+          <button type="button" class="btn-ghost" id="resetReg">Ricomincia</button>
+        </div>
+      </form>
+
+      <div id="regOut" class="hidden" style="margin-top:20px">
+        <div class="xlsbar">📊 registro-interventi.xlsx — foglio "Manutenzione predittiva"</div>
+        <div class="xls-scroll"><table class="xls" id="regTable"></table></div>
+        <p class="note" id="regMsg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 2 -->
+  <div class="sheet">
+    <div class="top" style="background:#7a2e2e">
+      <div class="kicker">Passo 2 · solo per l'intervento a priorità alta</div>
+      <h1>Scheda di intervento — Carroponte 12,5 t</h1>
+    </div>
+    <div class="body">
+      <div id="step2lock" class="legend">Completa e salva il <b>Passo 1</b>: l'intervento a <b>priorità alta</b> richiede questa scheda dedicata.</div>
+
+      <div id="step2form" class="locked">
+        <p class="note" style="margin-top:0">Il segnale è critico per la sicurezza: compila la scheda di intervento, poi premi <b>Verifica scheda</b>.</p>
+        <form id="doc0">
+          <div class="sys">
+            <div class="grid2">
+              <div><label class="f">1 · Componente critico</label>
+                <div class="cell" data-correct="Fune di sollevamento e gruppo freno">
+                  <select><option value="">— seleziona —</option><option>Fune di sollevamento e gruppo freno</option><option>Impianto elettrico di alimentazione</option><option>Struttura portante</option></select><div class="fb"></div></div></div>
+              <div><label class="f">2 · Modalità di guasto rilevata</label>
+                <div class="cell" data-correct="Degrado dei trefoli e riduzione dell'efficienza frenante">
+                  <select><option value="">— seleziona —</option><option>Degrado dei trefoli e riduzione dell'efficienza frenante</option><option>Corto circuito del motore</option><option>Surriscaldamento del riduttore</option></select><div class="fb"></div></div></div>
+              <div><label class="f">3 · Rischio in caso di cedimento</label>
+                <div class="cell" data-correct="Caduta del carico sospeso">
+                  <select><option value="">— seleziona —</option><option>Caduta del carico sospeso</option><option>Solo fermo produzione</option><option>Solo maggior consumo energetico</option></select><div class="fb"></div></div></div>
+              <div><label class="f">4 · Tipo di intervento</label>
+                <div class="cell" data-correct="Sostituzione della fune e registrazione/verifica del freno">
+                  <select><option value="">— seleziona —</option><option>Sostituzione della fune e registrazione/verifica del freno</option><option>Sola pulizia esterna</option><option>Nessun intervento, solo monitoraggio</option></select><div class="fb"></div></div></div>
+              <div><label class="f">5 · Messa in sicurezza prima dell'intervento</label>
+                <div class="cell" data-correct="Interdizione dell'area sottostante e sezionamento dell'alimentazione">
+                  <select><option value="">— seleziona —</option><option>Interdizione dell'area sottostante e sezionamento dell'alimentazione</option><option>Riduzione della velocità di lavoro</option><option>Nessuna misura particolare</option></select><div class="fb"></div></div></div>
+              <div><label class="f">6 · Condizione per il riavvio</label>
+                <div class="cell" data-correct="Collaudo e prova di carico con esito positivo">
+                  <select><option value="">— seleziona —</option><option>Collaudo e prova di carico con esito positivo</option><option>Riavvio immediato</option><option>Riavvio a fine turno</option></select><div class="fb"></div></div></div>
+              <div><label class="f">7 · Priorità e tempistica</label>
+                <div class="cell" data-correct="Urgente — entro 7 giorni">
+                  <select><option value="">— seleziona —</option><option>Urgente — entro 7 giorni</option><option>Programmabile — entro 90 giorni</option><option>Non necessario</option></select><div class="fb"></div></div></div>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn-primary" id="checkDoc">Verifica scheda</button>
+            <button type="button" class="btn-ghost hidden" id="viewDoc">Visualizza documento</button>
+          </div>
+          <p class="note" id="docMsg"></p>
+        </form>
+      </div>
+
+      <div id="docOut" class="hidden" style="margin-top:18px">
+        <div id="doc"></div>
+        <div class="actions no-print" style="margin-top:14px">
+          <button type="button" class="btn-primary" id="printDoc">Stampa scheda</button>
+          <button type="button" class="btn-xls" id="dlDoc">Scarica scheda</button>
+          <button type="button" class="btn-ghost" id="closeDoc">Torna alla compilazione</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="no-print">Compilazione a scopo formativo · nessun dato viene salvato</footer>
+</div>
+
+<script>
+(function(){
+  function shuffleSelects(){
+    Array.prototype.forEach.call(document.querySelectorAll('select'),function(sel){
+      var rest=Array.prototype.slice.call(sel.options).filter(function(o){return o.value!=='';});
+      for(var i=rest.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=rest[i];rest[i]=rest[j];rest[j]=t;}
+      rest.forEach(function(o){sel.removeChild(o);});
+      rest.forEach(function(o){sel.appendChild(o);});
+    });
+  }
+  shuffleSelects();
+  var BASE=new Date(2026,8,21);
+  var DAYS={'Alta':7,'Media':30,'Bassa':90};
+  function fmt(d){var g=('0'+d.getDate()).slice(-2),m=('0'+(d.getMonth()+1)).slice(-2);return g+'/'+m+'/'+d.getFullYear();}
+  function addDays(d,n){var x=new Date(d.getTime());x.setDate(x.getDate()+n);return x;}
+
+  var MAC=[
+    {id:'MP-2026-001',nome:'Carroponte 12,5 t',seg:'Usura trefoli fune + microslittamenti freno'},
+    {id:'MP-2026-002',nome:'Compressore d’aria',seg:'Vibrazione cuscinetti + temperatura in aumento'},
+    {id:'MP-2026-003',nome:'Nastro trasportatore',seg:'Assorbimento elettrico in lieve aumento'}
+  ];
+
+  function gradeCell(c){
+    var sel=c.querySelector('select'),want=c.getAttribute('data-correct'),got=sel.value,fb=c.querySelector('.fb');
+    c.classList.remove('correct','wrong');
+    if(got===want){c.classList.add('correct');fb.textContent='✓ corretto';return true;}
+    c.classList.add('wrong');fb.textContent=got?('✗ corretto: '+want):('✗ da compilare — corretto: '+want);return false;
+  }
+
+  var regCells=Array.prototype.slice.call(document.querySelectorAll('#reg .cell'));
+  document.getElementById('saveReg').addEventListener('click',function(){
+    regCells.forEach(gradeCell);
+    buildRegister();
+    document.getElementById('regOut').classList.remove('hidden');
+    document.getElementById('step2lock').classList.add('hidden');
+    document.getElementById('step2form').classList.remove('locked');
+    document.getElementById('regOut').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  document.getElementById('resetReg').addEventListener('click',function(){
+    regCells.forEach(function(c){c.classList.remove('correct','wrong');c.querySelector('select').value='';});
+    document.getElementById('regOut').classList.add('hidden');
+  });
+  function selVal(i,j){return document.querySelectorAll('#reg .sys')[i].querySelectorAll('select')[j].value;}
+  function buildRegister(){
+    var cols=['','A','B','C','D','E','F','G'];
+    var head=['#','ID','Macchina','Segnale rilevato','Guasto probabile','Priorità','Rilevazione','Intervento entro'];
+    var html='<thead><tr>';
+    cols.forEach(function(c,k){html+='<th class="collet">'+(k===0?'':c)+'</th>';});
+    html+='</tr><tr>';
+    head.forEach(function(h,k){html+='<th'+(k===0?' class="rownum"':'')+'>'+h+'</th>';});
+    html+='</tr></thead><tbody>';
+    for(var i=0;i<3;i++){
+      var guasto=selVal(i,0), prio=selVal(i,1);
+      var days=DAYS[prio];
+      var entro = days? fmt(addDays(BASE,days)) : '—';
+      var pc=(prio==='Alta')?' class="prio-alta"':'';
+      var dc=(prio==='Alta')?' class="date-red"':'';
+      html+='<tr><td class="rownum">'+(i+2)+'</td>';
+      html+='<td>'+MAC[i].id+'</td><td>'+MAC[i].nome+'</td><td>'+MAC[i].seg+'</td>';
+      html+='<td>'+(guasto||'—')+'</td><td'+pc+'>'+(prio||'—')+'</td>';
+      html+='<td>'+fmt(BASE)+'</td><td'+dc+'>'+entro+'</td></tr>';
+    }
+    html+='</tbody>';
+    document.getElementById('regTable').innerHTML=html;
+    document.getElementById('regMsg').innerHTML='<b>Nota.</b> Le priorità determinano la tempistica di intervento (convenzione: 7 / 30 / 90 giorni). Il carroponte è a <b>priorità alta</b> — priorità e data evidenziate in rosso — perché un cedimento della fune metterebbe a rischio le persone: apre la <b>scheda di intervento</b> del Passo 2. Gli altri due restano righe di registro da programmare.';
+  }
+
+  // PASSO 2
+  var docCells=Array.prototype.slice.call(document.querySelectorAll('#doc0 .cell'));
+  document.getElementById('checkDoc').addEventListener('click',function(){
+    var ok=0; docCells.forEach(function(c){ if(gradeCell(c)) ok++; });
+    var msg=document.getElementById('docMsg');
+    if(ok===docCells.length){
+      msg.textContent='Scheda di intervento completa e coerente con la messa in sicurezza. Ora puoi visualizzare e stampare il documento.';
+      document.getElementById('viewDoc').classList.remove('hidden');
+    } else {
+      msg.textContent='Punteggio '+ok+'/'+docCells.length+'. Correggi i campi in rosso: per un apparecchio di sollevamento la messa in sicurezza e il collaudo prima del riavvio non sono facoltativi.';
+      document.getElementById('viewDoc').classList.add('hidden');
+    }
+  });
+  document.getElementById('viewDoc').addEventListener('click',function(){
+    var entro=fmt(addDays(BASE,7));
+    document.getElementById('doc').innerHTML = `
+      <span class="stamp">⚠️ SCHEDA DI INTERVENTO — MANUTENZIONE PREDITTIVA · PRIORITÀ ALTA</span>
+      <div class="subt">Apparecchio di sollevamento — intervento su segnalazione predittiva</div>
+      <div class="kv"><span class="k">ID Intervento</span><span class="v">MP-2026-001</span></div>
+      <div class="kv"><span class="k">Macchina</span><span class="v">Carroponte 12,5 t — Reparto Produzione</span></div>
+      <div class="kv"><span class="k">Data rilevazione segnale</span><span class="v">21/09/2026</span></div>
+      <div class="kv"><span class="k">Responsabile manutenzione</span><span class="v">Uff. Manutenzione</span></div>
+      <div class="kv"><span class="k">Priorità</span><span class="v redflag">URGENTE — intervento entro ${entro}</span></div>
+
+      <h3 class="mh">1 · Diagnosi predittiva</h3>
+      <div class="kv"><span class="k">Componente critico</span><span class="v">Fune di sollevamento e gruppo freno</span></div>
+      <div class="kv"><span class="k">Parametro / KPI fuori soglia</span><span class="v redflag">Perdita di sezione fune (MRT): 6,5% (soglia allerta 5%) · Tempo di slittamento freno: 320 ms (soglia max 200 ms)</span></div>
+      <div class="kv"><span class="k">RUL — vita residua stimata</span><span class="v redflag">≈ 50 ore di sollevamento prima del superamento dei limiti (urgenza: Alta)</span></div>
+      <div class="kv"><span class="k">Segnale rilevato</span><span class="v">Usura anomala dei trefoli della fune e microslittamenti in frenata, rilevati dai sensori di linea e confermati dal report dell'algoritmo in data 21/09/2026.</span></div>
+      <div class="kv"><span class="k">Modalità di guasto</span><span class="v">Degrado dei trefoli e riduzione dell'efficienza frenante.</span></div>
+
+      <h3 class="mh">2 · Valutazione del rischio per la sicurezza</h3>
+      <div class="kv"><span class="k">Rischio in caso di cedimento</span><span class="v redflag">Caduta del carico sospeso</span></div>
+      <div class="kv"><span class="k">Persone esposte</span><span class="v">Operatori e addetti in transito nell'area sottostante e nel raggio di manovra del carroponte.</span></div>
+      <div class="kv"><span class="k">Motivo della priorità alta</span><span class="v">La combinazione degrado fune + minor efficacia frenante può portare a caduta improvvisa del carico: rischio grave per le persone.</span></div>
+
+      <h3 class="mh">3 · Intervento e messa in sicurezza</h3>
+      <div class="kv"><span class="k">Messa in sicurezza (prima)</span><span class="v">Interdizione dell'area sottostante, sezionamento dell'alimentazione e blocco delle manovre; cartellonistica e, dove previsto, permesso di lavoro.</span></div>
+      <div class="kv"><span class="k">Tipo di intervento</span><span class="v">Sostituzione della fune di sollevamento e registrazione/verifica del gruppo freno da parte di personale qualificato.</span></div>
+      <div class="kv"><span class="k">DPI e cautele</span><span class="v">DPI anticaduta per il lavoro in quota, imbracatura del carroponte messo fuori servizio, utensili idonei.</span></div>
+
+      <h3 class="mh">4 · Riavvio e verifiche</h3>
+      <div class="kv"><span class="k">Condizione per il riavvio</span><span class="v">Collaudo funzionale e prova di carico con esito positivo prima di rimettere in servizio l'apparecchio.</span></div>
+      <div class="kv"><span class="k">Verifiche periodiche</span><span class="v">Allineare la scadenza con le verifiche periodiche previste per gli apparecchi di sollevamento; aggiornare il libretto dell'attrezzatura.</span></div>
+
+      <h3 class="mh">5 · Registrazione e tracciabilità</h3>
+      <div class="kv"><span class="k">Aggiornamento registro</span><span class="v">Chiusura della riga nel registro interventi con esito, materiali e ricambi impiegati.</span></div>
+      <div class="kv"><span class="k">Prossimo controllo</span><span class="v redflag">Da fissare dopo il collaudo (monitoraggio predittivo mantenuto attivo).</span></div>
+
+      <h3 class="mh">6 · Feedback del manutentore (ciclo di apprendimento dell'algoritmo)</h3>
+      <div class="kv"><span class="k">Esito a fine intervento</span><span class="v">&#9744;&nbsp; Anomalia predittiva confermata dai fatti &nbsp;&nbsp;&nbsp; &#9744;&nbsp; Falso allarme / errore sensore</span></div>
+      <div class="kv"><span class="k">Note per la calibrazione</span><span class="v ph">[Osservazioni del tecnico utili a ritarare il modello predittivo per il futuro].</span></div>
+
+      <h3 class="mh">Firme</h3>
+      <div class="firme">
+        <div class="row">Responsabile Manutenzione: ______________________  Data: ___________</div>
+        <div class="row">RSPP: ______________________  Data: ___________</div>
+        <div class="row">Preposto di reparto: ______________________  Data: ___________</div>
+      </div>`;
+    document.getElementById('docOut').classList.remove('hidden');
+    document.getElementById('docOut').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  document.getElementById('printDoc').addEventListener('click',function(){window.print();});
+  document.getElementById('dlDoc').addEventListener('click',function(){
+    var inner=document.getElementById('doc').innerHTML;
+    var css='body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2733;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.5;font-size:13.5px}'+
+      'h3.mh{color:#1f4e79;font-size:14.5px;border-bottom:1px solid #d5dbe3;padding-bottom:4px;margin:18px 0 8px}'+
+      '.subt{color:#5b6673;font-size:12.5px;margin:-6px 0 12px}'+
+      '.kv{display:grid;grid-template-columns:250px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted #d5dbe3}'+
+      '.kv .k{color:#5b6673}.kv .v{font-weight:600}.redflag{color:#c0261e;font-weight:800}.ph{color:#1f4e79;font-style:italic}'+
+      '.stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:#c0261e;border:2px solid #c0261e;background:#fbeae9}'+
+      '.firme{margin-top:18px;font-size:13px}.firme .row{margin:10px 0}';
+    var html='<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Scheda intervento — Carroponte</title><style>'+css+'</style></head><body>'+inner+'</body></html>';
+    var blob=new Blob([html],{type:'text/html'});var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='scheda-intervento-carroponte.html';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  });
+  document.getElementById('closeDoc').addEventListener('click',function(){document.getElementById('docOut').classList.add('hidden');});
+})();
+</script>
+</body>
+</html>
