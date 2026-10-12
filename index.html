@@ -82,7 +82,7 @@
         <b>La manutenzione predittiva in tre passaggi.</b> I sensori rilevano un <b>segnale</b> anomalo;
         dal segnale si risale al <b>guasto probabile</b>; dal guasto si definiscono <b>priorità</b> e
         <b>intervento</b>, prima che il cedimento diventi un pericolo per chi lavora.<br>
-        <span class="note">Convenzione dell'esercitazione per la tempistica di intervento: <b>7 giorni</b> per la priorità
+        <span class="note">Convenzione dell'esercitazione per la tempistica di intervento: <b>macchina ferma fino all'intervento</b> per la priorità
         alta, <b>30 giorni</b> per la media, <b>alla prossima manutenzione programmata (90 giorni)</b> per la bassa.</span>
       </div>
 
@@ -181,8 +181,8 @@
                 <div class="cell" data-correct="Collaudo e prova di carico con esito positivo">
                   <select><option value="">— seleziona —</option><option>Collaudo e prova di carico con esito positivo</option><option>Riavvio immediato</option><option>Riavvio a fine turno</option></select><div class="fb"></div></div></div>
               <div><label class="f">7 · Priorità e tempistica</label>
-                <div class="cell" data-correct="Urgente — entro 7 giorni">
-                  <select><option value="">— seleziona —</option><option>Urgente — entro 7 giorni</option><option>Programmabile — entro 90 giorni</option><option>Non necessario</option></select><div class="fb"></div></div></div>
+                <div class="cell" data-correct="Urgente — carroponte fuori servizio fino all'intervento">
+                  <select><option value="">— seleziona —</option><option>Urgente — carroponte fuori servizio fino all'intervento</option><option>Entro 7 giorni, con carroponte in uso</option><option>Programmabile — entro 90 giorni</option><option>Non necessario</option></select><div class="fb"></div></div></div>
             </div>
           </div>
           <div class="actions">
@@ -219,7 +219,7 @@
   }
   shuffleSelects();
   var BASE=new Date(2026,8,21);
-  var DAYS={'Alta':7,'Media':30,'Bassa':90};
+  var DAYS={'Media':30,'Bassa':90};
   function fmt(d){var g=('0'+d.getDate()).slice(-2),m=('0'+(d.getMonth()+1)).slice(-2);return g+'/'+m+'/'+d.getFullYear();}
   function addDays(d,n){var x=new Date(d.getTime());x.setDate(x.getDate()+n);return x;}
 
@@ -252,7 +252,7 @@
   function selVal(i,j){return document.querySelectorAll('#reg .sys')[i].querySelectorAll('select')[j].value;}
   function buildRegister(){
     var cols=['','A','B','C','D','E','F','G'];
-    var head=['#','ID','Macchina','Segnale rilevato','Guasto probabile','Priorità','Rilevazione','Intervento entro'];
+    var head=['#','ID','Macchina','Segnale rilevato','Guasto probabile','Priorità','Rilevazione','Intervento'];
     var html='<thead><tr>';
     cols.forEach(function(c,k){html+='<th class="collet">'+(k===0?'':c)+'</th>';});
     html+='</tr><tr>';
@@ -261,7 +261,7 @@
     for(var i=0;i<3;i++){
       var guasto=selVal(i,0), prio=selVal(i,1);
       var days=DAYS[prio];
-      var entro = days? fmt(addDays(BASE,days)) : '—';
+      var entro = prio==='Alta' ? 'Fermo immediato' : (days? fmt(addDays(BASE,days)) : '—');
       var pc=(prio==='Alta')?' class="prio-alta"':'';
       var dc=(prio==='Alta')?' class="date-red"':'';
       html+='<tr><td class="rownum">'+(i+2)+'</td>';
@@ -271,7 +271,7 @@
     }
     html+='</tbody>';
     document.getElementById('regTable').innerHTML=html;
-    document.getElementById('regMsg').innerHTML='<b>Nota.</b> Le priorità determinano la tempistica di intervento (convenzione: 7 / 30 / 90 giorni). Il carroponte è a <b>priorità alta</b> — priorità e data evidenziate in rosso — perché un cedimento della fune metterebbe a rischio le persone: apre la <b>scheda di intervento</b> del Passo 2. Gli altri due restano righe di registro da programmare.';
+    document.getElementById('regMsg').innerHTML='<b>Nota.</b> Le priorità determinano la tempistica di intervento (convenzione: fermo immediato / 30 / 90 giorni). Il carroponte è a <b>priorità alta</b> — priorità e intervento evidenziati in rosso — perché un cedimento della fune metterebbe a rischio le persone: apre la <b>scheda di intervento</b> del Passo 2. Gli altri due restano righe di registro da programmare.';
   }
 
   // PASSO 2
@@ -296,7 +296,7 @@
       <div class="kv"><span class="k">Macchina</span><span class="v">Carroponte 12,5 t — Reparto Produzione</span></div>
       <div class="kv"><span class="k">Data rilevazione segnale</span><span class="v">21/09/2026</span></div>
       <div class="kv"><span class="k">Responsabile manutenzione</span><span class="v">Uff. Manutenzione</span></div>
-      <div class="kv"><span class="k">Priorità</span><span class="v redflag">URGENTE — intervento entro ${entro}</span></div>
+      <div class="kv"><span class="k">Priorità</span><span class="v redflag">URGENTE — carroponte fuori servizio fino all'intervento</span></div>
 
       <h3 class="mh">1 · Diagnosi predittiva</h3>
       <div class="kv"><span class="k">Componente critico</span><span class="v">Fune di sollevamento e gruppo freno</span></div>
